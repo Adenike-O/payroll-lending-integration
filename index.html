@@ -247,6 +247,12 @@ select.form-input{cursor:pointer}
   .main-panel{padding:16px}
   .stats-row{grid-template-columns:1fr 1fr}
 }
+
+@keyframes cfall{
+  0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:1}
+  80%{opacity:1}
+  100%{transform:translateY(105vh) translateX(var(--xend,20vw)) rotate(var(--rot,360deg));opacity:0}
+}
 </style>
 </head>
 <body>
@@ -351,6 +357,7 @@ const state = {
   isCounterOffer: false,
   lenderDecision: null,
   loanActive: false,
+  activeApplicant: 0,
 };
 
 const LOANS = [
@@ -369,6 +376,27 @@ const BORROWER = {
   bank: 'GTBank',
   account: '0123456789',
 };
+
+const APPLICANTS = [
+  {
+    name: 'Alex Okonkwo', employer: 'Ministry of Education', ippis: 'EMP-112345',
+    gross: 350000, deductions: 60000, bank: 'GTBank', bankCode: '058', account: '••••6789',
+    amount: 1500000, tenor: 12, rate: 22, loanRef: 'PB-LOAN-7712',
+    authCode: '73573', score: 82, dti: '41.4', dtiColor: 'var(--amber)',
+  },
+  {
+    name: 'Bola Adeyemi', employer: 'Ministry of Health', ippis: 'EMP-223456',
+    gross: 280000, deductions: 45000, bank: 'Access Bank', bankCode: '044', account: '••••3210',
+    amount: 800000, tenor: 6, rate: 24, loanRef: 'PB-LOAN-8834',
+    authCode: '91284', score: 76, dti: '33.6', dtiColor: 'var(--teal)',
+  },
+  {
+    name: 'Chidi Nwosu', employer: 'Ministry of Finance', ippis: 'EMP-334567',
+    gross: 520000, deductions: 90000, bank: 'Zenith Bank', bankCode: '057', account: '••••2345',
+    amount: 3200000, tenor: 24, rate: 22, loanRef: 'PB-LOAN-9921',
+    authCode: '46703', score: 88, dti: '52.3', dtiColor: 'var(--coral)',
+  },
+];
 
 // ═══════════════════════════════════════════
 // NAVIGATION
@@ -404,49 +432,33 @@ function lGoTo(step) {
 // ═══════════════════════════════════════════
 function launchConfetti(intensity) {
   intensity = intensity || 120;
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999';
-  document.body.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const colors = ['#4F7AFF','#22C55E','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F97316','#EC4899','#10B981'];
-  const particles = [];
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;overflow:hidden';
+  document.body.appendChild(wrap);
+  const colors = ['#4F7AFF','#22C55E','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F97316','#EC4899','#10B981','#FBBF24','#F472B6'];
   for (let i = 0; i < intensity; i++) {
-    particles.push({
-      x: Math.random() * canvas.width,
-      y: -20 - Math.random() * 40,
-      vx: (Math.random() - 0.5) * 6,
-      vy: Math.random() * 4 + 2,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      w: Math.random() * 10 + 5,
-      h: Math.random() * 6 + 3,
-      rot: Math.random() * Math.PI * 2,
-      rotV: (Math.random() - 0.5) * 0.25,
-      alpha: 1,
-      shape: Math.random() > 0.6 ? 'circle' : 'rect'
-    });
+    const el = document.createElement('div');
+    const isCircle = Math.random() > 0.45;
+    const size = Math.random() * 14 + 7;
+    const dur = (Math.random() * 1.8 + 1.4).toFixed(2);
+    const delay = (Math.random() * 0.7).toFixed(2);
+    const xEnd = (Math.random() * 120 - 10).toFixed(1);
+    const rot = Math.floor(Math.random() * 720 - 360);
+    el.style.cssText = [
+      'position:absolute',
+      `left:${(Math.random()*100).toFixed(1)}%`,
+      'top:-20px',
+      `width:${size.toFixed(1)}px`,
+      `height:${(isCircle ? size : size*0.45).toFixed(1)}px`,
+      `background:${colors[Math.floor(Math.random()*colors.length)]}`,
+      `border-radius:${isCircle?'50%':'3px'}`,
+      `animation:cfall ${dur}s ${delay}s ease-in both`,
+      `--xend:${xEnd}vw`,
+      `--rot:${rot}deg`
+    ].join(';');
+    wrap.appendChild(el);
   }
-  let frame = 0;
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    frame++;
-    let any = false;
-    for (const p of particles) {
-      p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.rot += p.rotV;
-      if (frame > 80) p.alpha -= 0.018;
-      if (p.alpha <= 0) continue;
-      any = true;
-      ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
-      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-      if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.w/2, 0, Math.PI*2); ctx.fill(); }
-      else { ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); }
-      ctx.restore();
-    }
-    if (any || frame < 100) requestAnimationFrame(draw);
-    else { try { document.body.removeChild(canvas); } catch(e){} }
-  }
-  draw();
+  setTimeout(() => { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 3600);
 }
 
 function updateBSidebar(step) {
@@ -891,7 +903,7 @@ function screenL1() {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
       <div>
         <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px">Lender Dashboard</h2>
-        <p style="font-size:13px;color:var(--text2)">Pending loan applications from PayBridge. Salary data is pre-verified.</p>
+        <p style="font-size:13px;color:var(--text2)">Pending loan applications from PayBridge. Salary data is pre-verified — click any applicant to begin review.</p>
       </div>
       <div style="text-align:right"><div style="font-size:11px;color:var(--text3);font-family:var(--mono)">Prestige Finance</div><div style="font-size:11px;color:#8B5CF6">● Connected to PayBridge</div></div>
     </div>
@@ -901,49 +913,41 @@ function screenL1() {
       <div class="stat-card"><div class="stat-val" style="color:var(--text)">₦18.4M</div><div class="stat-lbl">Total deployed</div></div>
     </div>
     <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">Pending Applications</h3>
-    <div class="app-card" onclick="renderLender(2)">
+    ${APPLICANTS.map((ap, idx) => `
+    <div class="app-card" onclick="state.activeApplicant=${idx};renderLender(2)">
       <div class="app-card-top">
         <div>
-          <div class="app-name">Alex Okonkwo</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">Ministry of Education · EMP-112345</div>
+          <div class="app-name">${ap.name}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${ap.employer} · ${ap.ippis}</div>
           <div style="margin-top:6px"><span class="sp sp-pending">Awaiting decision</span></div>
         </div>
-        <div class="app-amount" style="text-align:right">
-          <div class="app-amount">₦1,500,000</div>
-          <div class="app-amount-lbl">12 months · 22% p.a.</div>
+        <div style="text-align:right">
+          <div class="app-amount">₦${ap.amount.toLocaleString()}</div>
+          <div class="app-amount-lbl">${ap.tenor} months · ${ap.rate}% p.a.</div>
         </div>
       </div>
       <div class="app-details">
-        <div class="app-detail">Bank: <span>GTBank (bankCode: 058)</span></div>
-        <div class="app-detail">Auth code: <span style="font-family:var(--mono)">73573</span></div>
+        <div class="app-detail">Bank: <span>${ap.bank} (bankCode: ${ap.bankCode})</span></div>
+        <div class="app-detail">Auth code: <span style="font-family:var(--mono)">${ap.authCode}</span></div>
         <div class="app-detail">Consent: <span style="color:var(--teal)">✓ Verified</span></div>
       </div>
-    </div>
-    <div class="app-card" style="opacity:0.5">
-      <div class="app-card-top">
-        <div><div class="app-name">Bola Adeyemi</div><div style="font-size:11px;color:var(--text2);margin-top:2px">Min. of Health · EMP-223456</div><div style="margin-top:6px"><span class="sp sp-pending">Awaiting decision</span></div></div>
-        <div style="text-align:right"><div class="app-amount">₦800,000</div><div class="app-amount-lbl">6 months</div></div>
-      </div>
-    </div>
-    <div class="app-card" style="opacity:0.5">
-      <div class="app-card-top">
-        <div><div class="app-name">Chidi Nwosu</div><div style="font-size:11px;color:var(--text2);margin-top:2px">Min. of Finance · EMP-334567</div><div style="margin-top:6px"><span class="sp sp-pending">Awaiting decision</span></div></div>
-        <div style="text-align:right"><div class="app-amount">₦3,200,000</div><div class="app-amount-lbl">24 months</div></div>
-      </div>
-    </div>
-    <div style="margin-top:8px;font-size:12px;color:var(--text3);font-style:italic">Click Alex Okonkwo to review their application →</div>
+    </div>`).join('')}
   </div>`;
 }
 
 // SCREEN L2: Salary Review
 function screenL2() {
+  const ap = APPLICANTS[state.activeApplicant];
+  const instalment = Math.round(ap.amount * 1.22 / ap.tenor);
+  const dtiNum = parseFloat(ap.dti);
+  const scoreColor = ap.score >= 80 ? 'var(--teal)' : ap.score >= 65 ? 'var(--amber)' : 'var(--coral)';
   return `
   <div class="screen">
-    <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Salary Data — Alex Okonkwo</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Salary history verified by PayBridge from GovPay payroll records. Borrower consented via OTP (authorisationCode: <span style="font-family:var(--mono);color:var(--blue-mid)">73573</span>).</p>
+    <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Salary Data — ${ap.name}</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Salary history verified by PayBridge from GovPay payroll records. Borrower consented via OTP (authorisationCode: <span style="font-family:var(--mono);color:var(--blue-mid)">${ap.authCode}</span>).</p>
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-val" style="color:var(--teal)">₦350K</div><div class="stat-lbl">Gross salary/month</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--amber)">₦60K</div><div class="stat-lbl">Existing deductions</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--teal)">₦${(ap.gross/1000).toFixed(0)}K</div><div class="stat-lbl">Gross salary/month</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--amber)">₦${(ap.deductions/1000).toFixed(0)}K</div><div class="stat-lbl">Existing deductions</div></div>
       <div class="stat-card"><div class="stat-val" style="color:var(--text)">100%</div><div class="stat-lbl">12mo payment rate</div></div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px">
@@ -953,20 +957,20 @@ function screenL2() {
         <div class="bar-row">
           <div class="bar-label" style="font-size:11px;color:var(--text2)">${m} 2025</div>
           <div class="bar-track"><div class="bar-fill" id="bar-${i}" style="width:0%;background:linear-gradient(90deg,#059669,#34D399)"></div></div>
-          <div class="bar-val">₦350,000</div>
+          <div class="bar-val">₦${ap.gross.toLocaleString()}</div>
         </div>`).join('')}
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Debt-to-income ratio</div>
-        <div style="font-size:22px;font-weight:700;color:var(--amber)">41.4%</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">₦145K instalment / ₦350K gross</div>
+        <div style="font-size:22px;font-weight:700;color:${ap.dtiColor}">${ap.dti}%</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">₦${(instalment/1000).toFixed(0)}K instalment / ₦${(ap.gross/1000).toFixed(0)}K gross</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px">PayrollSync score (optional)</div>
-        <div style="font-size:22px;font-weight:700;color:var(--teal)">82/100</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">ELIGIBLE per GovPay records</div>
+        <div style="font-size:22px;font-weight:700;color:${scoreColor}">${ap.score}/100</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">${ap.score >= 70 ? 'ELIGIBLE' : 'BORDERLINE'} per GovPay records</div>
       </div>
     </div>
     <button class="cta-p" style="background:#7C3AED;max-width:300px" onclick="renderLender(3)">Make Credit Decision →</button>
@@ -983,35 +987,38 @@ function animateSalaryBars() {
 
 // SCREEN L3: Credit Decision
 function screenL3() {
+  const ap = APPLICANTS[state.activeApplicant];
+  const instalment = Math.round(ap.amount * 1.22 / ap.tenor);
+  const counterAmt = Math.round(ap.amount * 0.67 / 100000) * 100000;
   return `
   <div class="screen">
-    <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Credit Decision — Alex Okonkwo</h2>
+    <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Credit Decision — ${ap.name}</h2>
     <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Review the application and make your decision. If you approve, PayBridge will use your WACS token to register the loan — your name, not PayBridge's, will appear on the borrower's payslip.</p>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
         <div>
-          <div style="font-size:15px;font-weight:600;color:var(--text)">Alex Okonkwo</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px">Ministry of Education · GTBank (058)</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">${ap.name}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${ap.employer} · ${ap.bank} (${ap.bankCode})</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:22px;font-weight:700;color:var(--text)">₦1,500,000</div>
-          <div style="font-size:11px;color:var(--text2)">12 months · 22% p.a.</div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)">₦${ap.amount.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text2)">${ap.tenor} months · ${ap.rate}% p.a.</div>
         </div>
       </div>
       <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:12px">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
-          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Gross salary</div><div style="font-size:14px;font-weight:600;color:var(--teal)">₦350K</div></div>
-          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Monthly instalment</div><div style="font-size:14px;font-weight:600;color:var(--text)">₦145K</div></div>
-          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">DTI ratio</div><div style="font-size:14px;font-weight:600;color:var(--amber)">41.4%</div></div>
-          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">PayrollSync score</div><div style="font-size:14px;font-weight:600;color:var(--teal)">82/100</div></div>
-          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Auth code</div><div style="font-size:13px;font-weight:600;color:var(--text);font-family:var(--mono)">73573</div></div>
-          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Mandate bank</div><div style="font-size:14px;font-weight:600;color:var(--text)">GTBank</div></div>
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Gross salary</div><div style="font-size:14px;font-weight:600;color:var(--teal)">₦${(ap.gross/1000).toFixed(0)}K</div></div>
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Monthly instalment</div><div style="font-size:14px;font-weight:600;color:var(--text)">₦${(instalment/1000).toFixed(0)}K</div></div>
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">DTI ratio</div><div style="font-size:14px;font-weight:600;color:${ap.dtiColor}">${ap.dti}%</div></div>
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">PayrollSync score</div><div style="font-size:14px;font-weight:600;color:var(--teal)">${ap.score}/100</div></div>
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Auth code</div><div style="font-size:13px;font-weight:600;color:var(--text);font-family:var(--mono)">${ap.authCode}</div></div>
+          <div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Mandate bank</div><div style="font-size:14px;font-weight:600;color:var(--text)">${ap.bank}</div></div>
         </div>
       </div>
       <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Your decision:</div>
       <div class="decision-btns">
-        <div class="dec-btn dec-approve" onclick="lenderDecide('approve')">✓ Approve<br><span style="font-size:10px;font-weight:400">Full ₦1.5M</span></div>
-        <div class="dec-btn dec-counter" onclick="lenderDecide('counter')">↔ Counter<br><span style="font-size:10px;font-weight:400">Offer ₦1M</span></div>
+        <div class="dec-btn dec-approve" onclick="lenderDecide('approve')">✓ Approve<br><span style="font-size:10px;font-weight:400">Full ₦${(ap.amount/1000000).toFixed(1)}M</span></div>
+        <div class="dec-btn dec-counter" onclick="lenderDecide('counter')">↔ Counter<br><span style="font-size:10px;font-weight:400">Offer ₦${(counterAmt/1000000).toFixed(1)}M</span></div>
         <div class="dec-btn dec-reject" onclick="lenderDecide('reject')">✗ Reject<br><span style="font-size:10px;font-weight:400">Decline</span></div>
       </div>
       <div id="decision-result" style="margin-top:16px"></div>
@@ -1025,17 +1032,21 @@ function screenL3() {
 
 function lenderDecide(decision) {
   state.lenderDecision = decision;
+  const ap = APPLICANTS[state.activeApplicant];
+  const counterAmt = Math.round(ap.amount * 0.67 / 100000) * 100000;
   const el = document.getElementById('decision-result');
   if (decision === 'approve') {
-    state.offerAmount = 1500000;
-    state.offerInstalment = Math.round(state.offerAmount * 1.22 / state.loanTenor);
-    el.innerHTML = `<div class="info-bar ib-green"><div class="ib-icon">✓</div><div><strong>Loan approved for full ₦1,500,000.</strong> PayBridge has been notified. PATCH /loans/accept called with your WACS token. Loan will be registered under Prestige Finance.</div></div><button class="cta-p" style="background:#7C3AED;max-width:300px;margin-top:4px" onclick="renderLender(4)">View Active Loans →</button>`;
+    state.offerAmount = ap.amount;
+    state.offerInstalment = Math.round(state.offerAmount * 1.22 / ap.tenor);
+    state.loanTenor = ap.tenor;
+    el.innerHTML = `<div class="info-bar ib-green"><div class="ib-icon">✓</div><div><strong>Loan approved for full ₦${ap.amount.toLocaleString()}.</strong> PayBridge has been notified. PATCH /loans/accept called with your WACS token. Loan registered under Prestige Finance.</div></div><button class="cta-p" style="background:#7C3AED;max-width:300px;margin-top:4px" onclick="renderLender(4)">View Active Loans →</button>`;
     showToast('✅', 'Loan approved — PayBridge registering with PayrollSync');
   } else if (decision === 'counter') {
-    state.offerAmount = 1000000;
-    state.offerInstalment = Math.round(state.offerAmount * 1.22 / state.loanTenor);
-    el.innerHTML = `<div class="info-bar ib-amber"><div class="ib-icon">↔</div><div><strong>Counter-offer sent: ₦1,000,000</strong> (reduced from ₦1.5M). Monthly instalment updated to <strong>₦${state.offerInstalment.toLocaleString()}</strong>. Borrower will see the revised offer on their app and can accept or decline.</div></div><button class="cta-p" style="background:#D97706;max-width:300px;margin-top:4px" onclick="renderLender(4)">View Active Loans →</button>`;
-    showToast('↔', 'Counter-offer of ₦1M sent — instalment recalculated');
+    state.offerAmount = counterAmt;
+    state.offerInstalment = Math.round(state.offerAmount * 1.22 / ap.tenor);
+    state.loanTenor = ap.tenor;
+    el.innerHTML = `<div class="info-bar ib-amber"><div class="ib-icon">↔</div><div><strong>Counter-offer sent: ₦${counterAmt.toLocaleString()}</strong> (reduced from ₦${ap.amount.toLocaleString()}). Monthly instalment updated to <strong>₦${state.offerInstalment.toLocaleString()}</strong>. Borrower will see the revised offer on their app.</div></div><button class="cta-p" style="background:#D97706;max-width:300px;margin-top:4px" onclick="renderLender(4)">View Active Loans →</button>`;
+    showToast('↔', `Counter-offer of ₦${(counterAmt/1000).toFixed(0)}K sent — instalment recalculated`);
   } else {
     el.innerHTML = `<div class="info-bar ib-red"><div class="ib-icon">✗</div><div><strong>Application rejected.</strong> PATCH /loans/reject called. Borrower has been notified. No mandate created.</div></div><button class="cta-p" style="background:var(--surface3);max-width:300px;margin-top:4px" onclick="renderLender(1)">← Back to Applications</button>`;
     showToast('✗', 'Application rejected — borrower notified');
@@ -1044,73 +1055,63 @@ function lenderDecide(decision) {
 
 // SCREEN L4: Active Loans + Mandate Management
 function screenL4() {
+  const ap = APPLICANTS[state.activeApplicant];
+  const decisionLabel = state.lenderDecision === 'counter' ? 'Counter-offer accepted' : 'Approved';
   return `
   <div class="screen">
     <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">Active Loans & Mandate Management</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Manage active mandates. All repayments are processed through PayrollSync — GovPay sends two separate instructions to PayBridge each month: salary credit and your repayment, ensuring transparency on the borrower's payslip.</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Manage active mandates. GovPay sends PayBridge two separate instructions each month: salary credit and your repayment — ensuring full transparency on the borrower's payslip.</p>
     <div style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.25);border-radius:10px;padding:14px;margin-bottom:20px">
       <div style="font-size:11px;font-weight:600;color:var(--teal);margin-bottom:6px;font-family:var(--mono)">MONTHLY REPAYMENT FLOW — WACS SCENARIO</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.7">GovPay processes payroll → sends PayBridge two separate instructions: (1) credit borrower full gross salary, (2) credit Prestige Finance the repayment amount. PayBridge detects the PayrollSync flag, bypasses inflight collections, and executes both as separate RITS transactions.</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">GovPay processes payroll → sends PayBridge two separate instructions: (1) credit borrower full gross salary, (2) credit Prestige Finance the repayment amount. PayBridge detects the PayrollSync flag and executes both as separate RITS transactions.</div>
     </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Showing mandate for: <strong style="color:var(--text)">${ap.name}</strong> <span style="color:#8B5CF6;font-size:11px">(${decisionLabel})</span> — <button onclick="renderLender(1)" style="background:none;border:none;color:var(--blue-mid);cursor:pointer;font-size:11px;font-family:var(--font)">← view all applicants</button></div>
     <div class="mandate-card">
       <div class="mc-top">
         <div>
-          <div class="mc-name">Alex Okonkwo — PB-LOAN-7712</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">GTBank · bankCode 058 · EMP-112345</div>
+          <div class="mc-name">${ap.name} — ${ap.loanRef}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${ap.bank} · bankCode ${ap.bankCode} · ${ap.ippis}</div>
           <div style="margin-top:6px"><span class="sp sp-active">Active</span></div>
         </div>
         <div style="text-align:right">
           <div style="font-size:18px;font-weight:700;color:var(--text)">₦${state.offerInstalment.toLocaleString()}/mo</div>
-          <div style="font-size:11px;color:var(--text2)">1 of ${state.loanTenor} paid</div>
+          <div style="font-size:11px;color:var(--text2)">1 of ${ap.tenor} paid</div>
         </div>
       </div>
       <div style="background:var(--surface2);border-radius:6px;padding:10px;margin-bottom:10px">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;font-size:11px">
-          <div><div style="color:var(--text3)">Principal</div><div style="font-weight:600;color:var(--text)">₦${(state.offerAmount/1000000).toFixed(1)}M</div></div>
+          <div><div style="color:var(--text3)">Principal</div><div style="font-weight:600;color:var(--text)">₦${(state.offerAmount/1000000).toFixed(2)}M</div></div>
           <div><div style="color:var(--text3)">Collected</div><div style="font-weight:600;color:var(--teal)">₦${state.offerInstalment.toLocaleString()}</div></div>
-          <div><div style="color:var(--text3)">Outstanding</div><div style="font-weight:600;color:var(--text)">₦${(state.offerAmount*1.1 - state.offerInstalment).toLocaleString()}</div></div>
+          <div><div style="color:var(--text3)">Outstanding</div><div style="font-weight:600;color:var(--text)">₦${(state.offerAmount * 1.1 - state.offerInstalment).toLocaleString()}</div></div>
           <div><div style="color:var(--text3)">Next payment</div><div style="font-weight:600;color:var(--text)">17 Jun</div></div>
         </div>
       </div>
       <div class="mc-actions">
-        <button class="mc-btn mc-debit" onclick="showToast('💳','Debit instruction sent to PayBridge — GTBank will debit on next business day')">Send Debit Instruction</button>
-        <button class="mc-btn mc-stop" onclick="showToast('⏹','Stop mandate request submitted — PayBridge will notify GTBank within 24hrs')">Stop Mandate</button>
+        <button class="mc-btn mc-debit" onclick="showToast('💳','Debit instruction sent to PayBridge — ${ap.bank} will debit on next business day')">Send Debit Instruction</button>
+        <button class="mc-btn mc-stop" onclick="showToast('⏹','Stop mandate submitted — PayBridge will notify ${ap.bank} within 24hrs')">Stop Mandate</button>
         <button class="mc-btn mc-history" onclick="showRepaymentHistory()">View History</button>
       </div>
       <div id="repayment-history"></div>
     </div>
-    <div class="mandate-card" style="opacity:0.6">
-      <div class="mc-top">
-        <div><div class="mc-name">Bola Adeyemi — PB-LOAN-7698</div><div style="font-size:11px;color:var(--text2);margin-top:2px">Access Bank · 3 of 6 paid</div><div style="margin-top:6px"><span class="sp sp-active">Active</span></div></div>
-        <div style="text-align:right"><div style="font-size:16px;font-weight:700;color:var(--text)">₦155,000/mo</div></div>
-      </div>
-    </div>
-    <div class="mandate-card" style="opacity:0.4">
-      <div class="mc-top">
-        <div><div class="mc-name">Chidi Nwosu — PB-LOAN-7602</div><div style="font-size:11px;color:var(--text2);margin-top:2px">Zenith Bank · Fully repaid</div><div style="margin-top:6px"><span class="sp sp-closed">Closed</span></div></div>
-        <div style="text-align:right"><div style="font-size:16px;font-weight:700;color:var(--text3)">₦0/mo</div></div>
-      </div>
-    </div>
+    <div style="font-size:12px;color:var(--text3);font-style:italic;margin-top:4px">Other mandates in portfolio: 11 active · ₦${(18400000 - state.offerAmount).toLocaleString()} deployed separately</div>
   </div>`;
 }
 
 function showRepaymentHistory() {
+  const ap = APPLICANTS[state.activeApplicant];
   document.getElementById('repayment-history').innerHTML = `
     <div style="margin-top:10px;background:var(--surface2);border-radius:8px;padding:12px">
-      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;font-family:var(--mono)">REPAYMENT HISTORY</div>
-      ${[
-        {date:'17 May 2026', amount: state.offerInstalment, rits:'RITS20260517003', wacs:'WACS_REP_20260517_001', status:'SUCCESS'},
-      ].map(r => `
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;font-family:var(--mono)">REPAYMENT HISTORY — ${ap.name}</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
         <div>
-          <div style="font-size:12px;font-weight:500;color:var(--text)">${r.date}</div>
-          <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${r.rits} · wacsRef: ${r.wacs}</div>
+          <div style="font-size:12px;font-weight:500;color:var(--text)">17 May 2026</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">RITS20260517003 · wacsRef: WACS_REP_20260517_001</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:13px;font-weight:600;color:var(--teal)">₦${r.amount.toLocaleString()}</div>
-          <div style="font-size:10px;color:var(--teal)">✓ ${r.status}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--teal)">₦${state.offerInstalment.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--teal)">✓ SUCCESS</div>
         </div>
-      </div>`).join('')}
+      </div>
       <div style="font-size:11px;color:var(--text3);margin-top:8px">RITS refs and wacsRefs are stored for audit and reconciliation.</div>
     </div>`;
   showToast('📋', 'Repayment history loaded');
