@@ -399,6 +399,56 @@ function lGoTo(step) {
   renderLender(step);
 }
 
+// ═══════════════════════════════════════════
+// CONFETTI
+// ═══════════════════════════════════════════
+function launchConfetti(intensity) {
+  intensity = intensity || 120;
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const colors = ['#4F7AFF','#22C55E','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F97316','#EC4899','#10B981'];
+  const particles = [];
+  for (let i = 0; i < intensity; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * 40,
+      vx: (Math.random() - 0.5) * 6,
+      vy: Math.random() * 4 + 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      w: Math.random() * 10 + 5,
+      h: Math.random() * 6 + 3,
+      rot: Math.random() * Math.PI * 2,
+      rotV: (Math.random() - 0.5) * 0.25,
+      alpha: 1,
+      shape: Math.random() > 0.6 ? 'circle' : 'rect'
+    });
+  }
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    frame++;
+    let any = false;
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.rot += p.rotV;
+      if (frame > 80) p.alpha -= 0.018;
+      if (p.alpha <= 0) continue;
+      any = true;
+      ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.w/2, 0, Math.PI*2); ctx.fill(); }
+      else { ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); }
+      ctx.restore();
+    }
+    if (any || frame < 100) requestAnimationFrame(draw);
+    else { try { document.body.removeChild(canvas); } catch(e){} }
+  }
+  draw();
+}
+
 function updateBSidebar(step) {
   for (let i = 1; i <= 8; i++) {
     const el = document.getElementById('sb-b' + i);
@@ -446,8 +496,10 @@ function renderBorrower(step) {
     5: screenB5, 6: screenB6, 7: screenB7, 8: screenB8
   };
   document.getElementById('borrower-screen').innerHTML = screens[step]();
+  const panel = document.querySelector('#borrower-app .main-panel');
+  if (panel) panel.scrollTop = 0;
   if (step === 4) startOtpTimer();
-  if (step === 8) animateBars();
+  if (step === 8) { animateBars(); setTimeout(() => launchConfetti(200), 200); }
 }
 
 // SCREEN B1: Browse Loans
@@ -646,6 +698,7 @@ function editOtp(i) {
 
 function confirmOtp() {
   clearInterval(timerInterval);
+  launchConfetti(100);
   showToast('✅', 'OTP confirmed — authorisationCode: 73573');
   setTimeout(() => renderBorrower(5), 800);
 }
@@ -685,7 +738,7 @@ function screenB5() {
               <div class="dc-row"><span class="dc-l">Monthly deduction</span><span class="dc-v">₦${state.offerInstalment.toLocaleString()}</span></div>
               <div class="dc-row"><span class="dc-l">First deduction</span><span class="dc-v">Next payroll date</span></div>
             </div>
-            <button class="cta-p" style="background:${loan.color}" onclick="renderBorrower(6)">Accept This Offer →</button>
+            <button class="cta-p" style="background:${loan.color}" onclick="launchConfetti(90);renderBorrower(6)">Accept This Offer →</button>
             <button class="cta-s" onclick="showToast('ℹ','Application declined. Returning to home.')">Decline Offer</button>
           </div>
         </div>
@@ -723,7 +776,7 @@ function screenB6() {
               <div class="ci-check" style="background:#2563EB">✓</div>
               <div><div class="ci-ttl">Payslip transparency</div><div class="ci-desc">My payslip will show my full gross salary and this loan deduction as separate, visible line items.</div></div>
             </div>
-            <button class="cta-p" style="background:#2563EB" onclick="renderBorrower(7)">I Agree — Activate Loan</button>
+            <button class="cta-p" style="background:#2563EB" onclick="launchConfetti(130);renderBorrower(7)">I Agree — Activate Loan</button>
             <button class="cta-s" onclick="showToast('ℹ','Application cancelled. No mandate created.')">Cancel Application</button>
           </div>
         </div>
@@ -757,7 +810,7 @@ function screenB7() {
               <div class="tl-item"><div class="tl-dot tl-done">✓</div><div><div class="tl-ttl">Loan registered with PayrollSync</div><div class="tl-sub">Lender on record: Prestige Finance</div></div></div>
             </div>
             <div class="info-bar ib-amber" style="margin-top:8px"><div class="ib-icon">📅</div><div>₦${state.offerInstalment.toLocaleString()} will be deducted from your ${state.selectedBank} account on your <strong>GovPay salary date</strong> every month for ${state.loanTenor} months.</div></div>
-            <button class="cta-p" style="background:#059669" onclick="renderBorrower(8)">View Loan Dashboard →</button>
+            <button class="cta-p" style="background:#059669" onclick="launchConfetti(160);renderBorrower(8)">View Loan Dashboard →</button>
           </div>
         </div>
       </div>
@@ -826,6 +879,9 @@ function renderLender(step) {
   updateLSidebar(step);
   const screens = { 1: screenL1, 2: screenL2, 3: screenL3, 4: screenL4 };
   document.getElementById('lender-screen').innerHTML = screens[step]();
+  const panel = document.querySelector('#lender-app .main-panel');
+  if (panel) panel.scrollTop = 0;
+  if (step === 2) setTimeout(animateSalaryBars, 350);
 }
 
 // SCREEN L1: Applications Dashboard
@@ -913,7 +969,7 @@ function screenL2() {
         <div style="font-size:11px;color:var(--text3);margin-top:4px">ELIGIBLE per GovPay records</div>
       </div>
     </div>
-    <button class="cta-p" style="background:#7C3AED;max-width:300px" onclick="renderLender(3);setTimeout(animateSalaryBars,300)">Make Credit Decision →</button>
+    <button class="cta-p" style="background:#7C3AED;max-width:300px" onclick="renderLender(3)">Make Credit Decision →</button>
     <button class="cta-s" style="max-width:300px;margin-top:8px" onclick="renderLender(1)">← Back to Applications</button>
   </div>`;
 }
@@ -971,13 +1027,17 @@ function lenderDecide(decision) {
   state.lenderDecision = decision;
   const el = document.getElementById('decision-result');
   if (decision === 'approve') {
-    el.innerHTML = `<div class="info-bar ib-green"><div class="ib-icon">✓</div><div><strong>Loan approved.</strong> PayBridge has been notified. PATCH /loans/accept called with your WACS token. Loan will be registered under Prestige Finance.</div></div><button class="cta-p" style="background:#7C3AED;max-width:300px;margin-top:4px" onclick="renderLender(4)">View Active Loans →</button>`;
+    state.offerAmount = 1500000;
+    state.offerInstalment = Math.round(state.offerAmount * 1.22 / state.loanTenor);
+    el.innerHTML = `<div class="info-bar ib-green"><div class="ib-icon">✓</div><div><strong>Loan approved for full ₦1,500,000.</strong> PayBridge has been notified. PATCH /loans/accept called with your WACS token. Loan will be registered under Prestige Finance.</div></div><button class="cta-p" style="background:#7C3AED;max-width:300px;margin-top:4px" onclick="renderLender(4)">View Active Loans →</button>`;
     showToast('✅', 'Loan approved — PayBridge registering with PayrollSync');
   } else if (decision === 'counter') {
-    el.innerHTML = `<div class="info-bar ib-amber"><div class="ib-icon">↔</div><div><strong>Counter-offer sent: ₦1,000,000.</strong> Borrower will see this on their app and can accept or decline the revised offer.</div></div>`;
-    showToast('↔', 'Counter-offer of ₦1M sent to borrower');
+    state.offerAmount = 1000000;
+    state.offerInstalment = Math.round(state.offerAmount * 1.22 / state.loanTenor);
+    el.innerHTML = `<div class="info-bar ib-amber"><div class="ib-icon">↔</div><div><strong>Counter-offer sent: ₦1,000,000</strong> (reduced from ₦1.5M). Monthly instalment updated to <strong>₦${state.offerInstalment.toLocaleString()}</strong>. Borrower will see the revised offer on their app and can accept or decline.</div></div><button class="cta-p" style="background:#D97706;max-width:300px;margin-top:4px" onclick="renderLender(4)">View Active Loans →</button>`;
+    showToast('↔', 'Counter-offer of ₦1M sent — instalment recalculated');
   } else {
-    el.innerHTML = `<div class="info-bar ib-red"><div class="ib-icon">✗</div><div><strong>Application rejected.</strong> PATCH /loans/reject called. Borrower has been notified. No mandate created.</div></div>`;
+    el.innerHTML = `<div class="info-bar ib-red"><div class="ib-icon">✗</div><div><strong>Application rejected.</strong> PATCH /loans/reject called. Borrower has been notified. No mandate created.</div></div><button class="cta-p" style="background:var(--surface3);max-width:300px;margin-top:4px" onclick="renderLender(1)">← Back to Applications</button>`;
     showToast('✗', 'Application rejected — borrower notified');
   }
 }
